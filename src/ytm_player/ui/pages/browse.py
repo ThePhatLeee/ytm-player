@@ -1105,11 +1105,12 @@ class MixesSection(Widget):
 
 
 class SubscriptionsSection(Widget):
-    """Artists the user is subscribed to (get_library_artists()).
+    """Artists the user is subscribed to.
 
-    The service call already existed — get_discovery_mix() uses it
-    internally as one of its randomised sources — but nothing surfaced it
-    as a browsable list of its own before this.
+    The service's ``get_library_artists`` wraps ytmusicapi's
+    ``get_library_subscriptions`` (not its library-artists endpoint); asked
+    with ``limit=None`` it follows every continuation, so the whole list
+    shows rather than the first 50.
     """
 
     DEFAULT_CSS = """
@@ -1170,7 +1171,7 @@ class SubscriptionsSection(Widget):
         try:
             ytmusic = cast("YTMHostBase", self.app).ytmusic
             assert ytmusic is not None
-            self._artists = await ytmusic.get_library_artists(limit=50)
+            self._artists = await ytmusic.get_library_artists(limit=None)
             self._populate_subscriptions()
         except Exception:
             logger.exception("Failed to load subscriptions")
