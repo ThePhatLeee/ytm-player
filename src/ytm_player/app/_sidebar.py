@@ -307,8 +307,6 @@ class SidebarMixin(YTMHostBase):
         """Navigate to a pinned page, or start a radio-style mix."""
         if message.nav_id == "discovery_mix":
             self.run_worker(self._start_discovery_mix(), exclusive=True)
-        elif message.nav_id == "new_release_mix":
-            self.run_worker(self._start_new_release_mix(), exclusive=True)
         else:
             await self.navigate_to(message.nav_id)
 

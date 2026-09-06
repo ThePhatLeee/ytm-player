@@ -11,7 +11,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 **New features**
 
 - **Browse is now reachable from the sidebar** — a new "Browse" pinned nav item sits alongside Liked Songs, Recently Played, and Discovery Mix, so the For You / Charts / New Releases / Subscriptions content is one click away instead of footer-button- or `g b`-only.
-- **New Release Mix** — a new pinned sidebar shortcut that starts a radio seeded from a random current new release, the same way Discovery Mix already works. Built from `get_new_releases()` rather than `get_home()`'s shelves, since the "Listen again"/"Fresh finds" shelves the real YouTube Music website groups these mixes under aren't consistently present in what the API's `get_home()` actually returns (confirmed live: `limit=100` still returned only 5 shelves for a real account).
 - **Mixes tab** — a new first-position tab on the Browse page collecting every playlist-shaped entry across `get_home()`'s shelves (mixes, curated stations, chart playlists) into one browsable list, instead of leaving them scattered across the For You tab's shelves.
 - **Subscriptions tab** — a new Browse tab listing artists you're subscribed to (`get_library_artists()`, previously only used internally by Discovery Mix's own randomised sources), each opening its artist page.
 

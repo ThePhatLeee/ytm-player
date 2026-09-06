@@ -1,7 +1,7 @@
 """Tests for PlaylistSidebar's pinned nav item clicks.
 
-Covers the two new pinned items added alongside the existing Liked Songs /
-Recently Played / Discovery Mix ones: Browse and New Release Mix.
+Covers the Browse pinned item added alongside the existing Liked Songs /
+Recently Played / Discovery Mix ones.
 """
 
 from __future__ import annotations
@@ -33,15 +33,6 @@ class TestPinnedNavClicks:
         (message,), _ = posted.call_args
         assert isinstance(message, PlaylistSidebar.NavItemClicked)
         assert message.nav_id == "browse"
-
-    def test_new_release_mix_click_posts_nav_item_clicked(self):
-        sidebar, posted = _make_sidebar()
-        sidebar.on_click(_click_event("ps-nav-new-release"))
-
-        posted.assert_called_once()
-        (message,), _ = posted.call_args
-        assert isinstance(message, PlaylistSidebar.NavItemClicked)
-        assert message.nav_id == "new_release_mix"
 
     def test_discovery_mix_click_still_works(self):
         """Regression: adding new pinned items must not disturb this one."""

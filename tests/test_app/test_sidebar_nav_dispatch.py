@@ -12,7 +12,6 @@ def _make_host() -> MagicMock:
     host = MagicMock()
     host.navigate_to = AsyncMock()
     host._start_discovery_mix = MagicMock(name="_start_discovery_mix")
-    host._start_new_release_mix = MagicMock(name="_start_new_release_mix")
     host.run_worker = MagicMock()
     return host
 
@@ -29,16 +28,6 @@ class TestNavDispatch:
 
         host.run_worker.assert_called_once()
         host._start_discovery_mix.assert_called_once()
-        host._start_new_release_mix.assert_not_called()
-        host.navigate_to.assert_not_called()
-
-    async def test_new_release_mix_runs_as_worker(self):
-        host = _make_host()
-        await _dispatch(host, "new_release_mix")
-
-        host.run_worker.assert_called_once()
-        host._start_new_release_mix.assert_called_once()
-        host._start_discovery_mix.assert_not_called()
         host.navigate_to.assert_not_called()
 
     async def test_browse_navigates_directly(self):
