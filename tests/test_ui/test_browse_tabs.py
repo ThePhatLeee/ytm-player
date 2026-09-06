@@ -489,3 +489,90 @@ async def test_selecting_a_subscription_opens_the_artist_page() -> None:
         host.navigate_to.assert_awaited_once_with(
             "context", context_type="artist", context_id="UCsia"
         )
+
+
+# ── Keyboard retry ───────────────────────────────────────────────────
+
+
+async def test_enter_on_the_active_tab_retries_a_failed_load_but_not_a_loaded_one() -> None:
+    host = _Host(feeds=[None, SHALLOW_FEED])
+    async with host.run_test(size=(120, 30)) as pilot:
+        await _settle(host, pilot)
+        page = host.query_one("#page", BrowsePage)
+        assert _message(host, "#foryou-loading") == browse._FORYOU_LOAD_FAILED
+
+        host.query_one("#tab-0").focus()
+        await pilot.pause()
+        await page.handle_action(Action.SELECT)
+        await _settle(host, pilot)
+        assert _limits(host) == [HOME_SHELVES, HOME_SHELVES]
+        assert _message(host, "#foryou-loading") == ""
+
+        # A loaded tab is left alone.
+        host.query_one("#tab-0").focus()
+        await pilot.pause()
+        await page.handle_action(Action.SELECT)
+        await _settle(host, pilot)
+        assert _limits(host) == [HOME_SHELVES, HOME_SHELVES]
+
+
+# ── Service-to-UI contract: a failed fetch is not an empty list ──────
+
+
+def _real_service():
+    from tests.conftest import make_ytmusic_service
+
+    svc = make_ytmusic_service()
+    svc._ytm.get_home = MagicMock(return_value=[])
+    return svc
+
+
+async def test_subscriptions_service_failure_shows_the_failure_not_an_empty_list() -> None:
+    host = _Host(active_tab=TAB_SUBS)
+    svc = _real_service()
+    svc._ytm.get_library_subscriptions = MagicMock(side_effect=RuntimeError("down"))
+    host.ytmusic = svc
+    async with host.run_test(size=(120, 30)) as pilot:
+        await _settle(host, pilot)
+        page = host.query_one("#page", BrowsePage)
+        assert _message(host, "#subs-loading") == browse._SUBSCRIPTIONS_LOAD_FAILED
+        assert TAB_SUBS not in page._tabs_loaded
+
+        svc._ytm.get_library_subscriptions = MagicMock(return_value=[])
+        await pilot.click("#tab-4")
+        await _settle(host, pilot)
+        assert "No subscriptions yet" in _message(host, "#subs-loading")
+
+        svc._ytm.get_library_subscriptions = MagicMock(
+            return_value=[{"artist": "Sia", "browseId": "UCsia", "subscribers": "3.88M"}]
+        )
+        await pilot.click("#tab-4")
+        await _settle(host, pilot)
+        assert _list_texts(host, "#subs-list") == ["Sia  (3.88M subscribers)"]
+        svc._ytm.get_library_subscriptions.assert_called_once_with(limit=None)
+
+
+async def test_new_releases_service_failure_shows_the_failure_not_an_empty_list() -> None:
+    host = _Host(active_tab=TAB_RELEASES)
+    svc = _real_service()
+    svc._ytm.get_explore = MagicMock(side_effect=RuntimeError("down"))
+    host.ytmusic = svc
+    async with host.run_test(size=(120, 30)) as pilot:
+        await _settle(host, pilot)
+        page = host.query_one("#page", BrowsePage)
+        assert _message(host, "#releases-loading") == browse._RELEASES_LOAD_FAILED
+        assert TAB_RELEASES not in page._tabs_loaded
+
+        svc._ytm.get_explore = MagicMock(return_value={"new_releases": []})
+        await pilot.click("#tab-2")
+        await _settle(host, pilot)
+        assert "No new releases" in _message(host, "#releases-loading")
+        assert TAB_RELEASES not in page._tabs_loaded
+
+        svc._ytm.get_explore = MagicMock(
+            return_value={"new_releases": [_album("Fresh", "OLAK5uy_fresh") | {"type": "Album"}]}
+        )
+        await pilot.click("#tab-2")
+        await _settle(host, pilot)
+        assert _list_texts(host, "#releases-list") == ["Fresh by Artist (Album)"]
+        assert TAB_RELEASES in page._tabs_loaded

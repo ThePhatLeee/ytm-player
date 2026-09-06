@@ -971,7 +971,12 @@ class NewReleasesSection(Widget):
         try:
             ytmusic = cast("YTMHostBase", self.app).ytmusic
             assert ytmusic is not None
-            self._albums = await ytmusic.get_new_releases()
+            albums = await ytmusic.get_new_releases()
+            if albums is None:
+                # None = the fetch failed; an empty explore page is [].
+                self._show_error(_RELEASES_LOAD_FAILED)
+                return
+            self._albums = albums
             self._populate_releases()
         except Exception:
             logger.exception("Failed to load new releases")
@@ -988,6 +993,11 @@ class NewReleasesSection(Widget):
 
         list_view = self.query_one("#releases-list", ListView)
         list_view.clear()
+
+        if not self._albums:
+            content.display = False
+            self._show_error("No new releases right now — check back later.")
+            return
 
         for album in self._albums:
             title = album.get("title", "Unknown Album")
@@ -1237,7 +1247,12 @@ class SubscriptionsSection(Widget):
         try:
             ytmusic = cast("YTMHostBase", self.app).ytmusic
             assert ytmusic is not None
-            self._artists = await ytmusic.get_library_artists(limit=None)
+            artists = await ytmusic.get_library_artists(limit=None)
+            if artists is None:
+                # None = the fetch failed; no subscriptions is [].
+                self._show_error(_SUBSCRIPTIONS_LOAD_FAILED)
+                return
+            self._artists = artists
             self._populate_subscriptions()
         except Exception:
             logger.exception("Failed to load subscriptions")
@@ -1508,6 +1523,10 @@ class BrowsePage(Widget):
         tab_bar = self.query_one("#browse-tabs", BrowseTabBar)
         if tab_bar.active_tab != index:
             tab_bar.switch_to(index)  # → TabChanged → _switch_section → _load_tab
+        else:
+            # Enter on the active tab: run its loader again if it never
+            # finished or ended on a message; a loaded tab is left alone.
+            self._load_tab(index)
         self._pending_focus_tab = index
         self.call_after_refresh(self._try_focus_section_content, index)
 
